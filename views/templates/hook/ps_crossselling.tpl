@@ -24,8 +24,8 @@
 *}
 
 <section>
-  <h1>{l s='Customers who bought this product also bought:' d='Modules.Crossselling.Shop'}</h1>
-  <div>
+  <h2>{l s='Customers who bought this product also bought:' d='Modules.Crossselling.Shop'}</h2>
+  <div class="products">
     {foreach from=$products item="product"}
       {include file="catalog/_partials/miniatures/product.tpl" product=$product}
     {/foreach}
