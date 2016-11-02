@@ -210,10 +210,12 @@ class Ps_Crossselling extends Module implements WidgetInterface
         $productIds = $this->getProductIds($hookName, $configuration);
         if (!empty($productIds)) {
             $products = $this->getOrderProducts($productIds);
-
-            return array(
-                'products' => $products,
-            );
+            
+            if (!empty($products)) {
+                return array(
+                    'products' => $products,
+                );
+            }
         }
         return false;
     }
