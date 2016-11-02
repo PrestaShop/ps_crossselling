@@ -64,7 +64,7 @@ class Ps_Crossselling extends Module implements WidgetInterface
         $this->_clearCache('*');
 
         return parent::install()
-            && Configuration::updateValue('CROSSSELLING_DISPLAY_PRICE', 0)
+            && Configuration::updateValue('CROSSSELLING_DISPLAY_PRICE', 1)
             && Configuration::updateValue('CROSSSELLING_NBR', 8)
             && $this->registerHook('displayFooterProduct')
             && $this->registerHook('actionOrderStatusPostUpdate');
