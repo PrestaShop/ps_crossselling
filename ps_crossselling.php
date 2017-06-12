@@ -46,7 +46,7 @@ class Ps_Crossselling extends Module implements WidgetInterface
         $this->need_instance = 0;
 
         $this->ps_versions_compliancy = array(
-            'min' => '1.7.0.0',
+            'min' => '1.7.2.0',
             'max' => _PS_VERSION_,
         );
 
@@ -54,7 +54,7 @@ class Ps_Crossselling extends Module implements WidgetInterface
         parent::__construct();
 
         $this->displayName = $this->trans('Cross-selling', array(), 'Modules.Crossselling.Admin');
-        $this->description = $this->trans('Adds a "Customers who bought this product also bought... section to every product page.', array(), 'Modules.Crossselling.Admin');
+        $this->description = $this->trans('Adds a "Customers who bought this product also bought..." section to every product page.', array(), 'Modules.Crossselling.Admin');
 
         $this->templateFile = 'module:ps_crossselling/views/templates/hook/ps_crossselling.tpl';
     }
@@ -210,7 +210,7 @@ class Ps_Crossselling extends Module implements WidgetInterface
         $productIds = $this->getProductIds($hookName, $configuration);
         if (!empty($productIds)) {
             $products = $this->getOrderProducts($productIds);
-            
+
             if (!empty($products)) {
                 return array(
                     'products' => $products,
