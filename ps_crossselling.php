@@ -42,7 +42,7 @@ class Ps_Crossselling extends Module implements WidgetInterface
     {
         $this->name = 'ps_crossselling';
         $this->author = 'PrestaShop';
-        $this->version = '1.0.1';
+        $this->version = '2.0.0';
         $this->need_instance = 0;
 
         $this->ps_versions_compliancy = array(
