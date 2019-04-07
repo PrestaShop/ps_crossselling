@@ -1,0 +1,11 @@
+parameters:
+  ps_cache_dir: !php/const _PS_CACHE_DIR_
+
+services:
+  ps_crossselling.cache.products:
+    class: 'Symfony\Component\Cache\Simple\FilesystemCache'
+    public: true
+    arguments:
+      - 'getOrderProducts'
+      - 86400
+      - '%ps_cache_dir%/ps_crossselling'

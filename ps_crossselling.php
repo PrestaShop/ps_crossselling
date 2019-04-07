@@ -23,34 +23,42 @@
  * @copyright Since 2007 PrestaShop SA and Contributors
  * @license   https://opensource.org/licenses/AFL-3.0 Academic Free License 3.0 (AFL-3.0)
  */
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
 
 use PrestaShop\PrestaShop\Adapter\Image\ImageRetriever;
 use PrestaShop\PrestaShop\Adapter\Product\PriceFormatter;
 use PrestaShop\PrestaShop\Adapter\Product\ProductColorsRetriever;
 use PrestaShop\PrestaShop\Core\Module\WidgetInterface;
 use PrestaShop\PrestaShop\Core\Product\ProductListingPresenter;
-
-if (!defined('_PS_VERSION_')) {
-    exit;
-}
+use Symfony\Component\Cache\Simple\FilesystemCache;
+use Symfony\Component\DependencyInjection\Exception\ServiceNotFoundException;
 
 class Ps_Crossselling extends Module implements WidgetInterface
 {
-    private $templateFile;
+    /**
+     * @var string
+     */
+    protected $templateFile;
+
+    const HOOKS = [
+        'displayFooterProduct',
+        'actionObjectProductUpdateAfter',
+        'actionObjectProductDeleteAfter',
+    ];
 
     public function __construct()
     {
         $this->name = 'ps_crossselling';
         $this->author = 'PrestaShop';
-        $this->version = '2.0.1';
+        $this->version = '3.0.0';
         $this->need_instance = 0;
-
+        $this->bootstrap = true;
         $this->ps_versions_compliancy = [
-            'min' => '1.7.2.0',
+            'min' => '1.7.4.0',
             'max' => _PS_VERSION_,
         ];
-
-        $this->bootstrap = true;
         parent::__construct();
 
         $this->displayName = $this->trans('Cross-selling', [], 'Modules.Crossselling.Admin');
@@ -59,26 +67,30 @@ class Ps_Crossselling extends Module implements WidgetInterface
         $this->templateFile = 'module:ps_crossselling/views/templates/hook/ps_crossselling.tpl';
     }
 
+    /**
+     * @return bool
+     */
     public function install()
     {
-        $this->_clearCache('*');
-
         return parent::install()
             && Configuration::updateValue('CROSSSELLING_DISPLAY_PRICE', 1)
             && Configuration::updateValue('CROSSSELLING_NBR', 8)
-            && $this->registerHook('displayFooterProduct')
-            && $this->registerHook('actionOrderStatusPostUpdate');
+            && $this->registerHook(static::HOOKS);
     }
 
+    /**
+     * @return bool
+     */
     public function uninstall()
     {
-        $this->_clearCache('*');
-
         return parent::uninstall()
             && Configuration::deleteByName('CROSSSELLING_DISPLAY_PRICE')
             && Configuration::deleteByName('CROSSSELLING_NBR');
     }
 
+    /**
+     * @return string
+     */
     public function getContent()
     {
         $html = '';
@@ -100,17 +112,81 @@ class Ps_Crossselling extends Module implements WidgetInterface
             }
         }
 
+        if (Tools::isSubmit('submitClearCache') && $this->clearCache()) {
+            $html .= $this->displayConfirmation($this->trans('All caches cleared successfully', [], 'Admin.Advparameters.Notification'));
+        }
+
         return $html . $this->renderForm();
     }
 
-    public function hookActionOrderStatusPostUpdate($params)
+    /**
+     * @param string $hookName
+     * @param array $configuration
+     *
+     * @return array
+     */
+    public function getWidgetVariables($hookName, array $configuration)
     {
-        $this->_clearCache('*');
+        $widgetVariables = [];
+        $productIds = $this->getProductIds($configuration);
+
+        if (!empty($productIds)) {
+            $orderedProductIds = $this->getOrderProducts($productIds);
+
+            $orderedProductsForTemplate = [];
+
+            if (!empty($orderedProductIds)) {
+                $assembler = new ProductAssembler($this->context);
+                $presenterFactory = new ProductPresenterFactory($this->context);
+                $presentationSettings = $presenterFactory->getPresentationSettings();
+                $presenter = new ProductListingPresenter(
+                    new ImageRetriever($this->context->link),
+                    $this->context->link,
+                    new PriceFormatter(),
+                    new ProductColorsRetriever(),
+                    $this->context->getTranslator()
+                );
+                $presentationSettings->showPrices = (bool) Configuration::get('CROSSSELLING_DISPLAY_PRICE');
+
+                foreach ($orderedProductIds as $orderedProductId) {
+                    $orderedProductsForTemplate[] = $presenter->present(
+                        $presentationSettings,
+                        $assembler->assembleProduct(['id_product' => $orderedProductId]),
+                        $this->context->language
+                    );
+                }
+            }
+
+            if (!empty($orderedProductsForTemplate)) {
+                $widgetVariables['products'] = $orderedProductsForTemplate;
+            }
+        }
+
+        return $widgetVariables;
     }
 
-    protected function _clearCache($template, $cacheId = null, $compileId = null)
+    /**
+     * @param string $hookName
+     * @param array $configuration
+     *
+     * @return string|null
+     */
+    public function renderWidget($hookName, array $configuration)
     {
-        parent::_clearCache($this->templateFile);
+        $productIds = $this->getProductIds($configuration);
+
+        if (empty($productIds)) {
+            return null;
+        }
+        $variables = $this->getWidgetVariables($hookName, $configuration);
+
+        if (empty($variables)) {
+            return null;
+        }
+
+        $this->smarty->assign($variables);
+
+        return $this->fetch($this->templateFile);
     }
 
     public function renderForm()
@@ -148,200 +224,199 @@ class Ps_Crossselling extends Module implements WidgetInterface
                         'desc' => $this->trans('Set the number of products displayed in this block.', [], 'Modules.Crossselling.Admin'),
                     ],
                 ],
+                'buttons' => [
+                    'clear_cache' => [
+                        'id' => 'clear_cache',
+                        'title' => $this->trans('Clear cache', [], 'Admin.Advparameters.Feature'),
+                        'icon' => 'process-icon-eraser',
+                        'href' => $this->context->link->getAdminLink(
+                            'AdminModules',
+                            true,
+                            [],
+                            [
+                                'configure' => $this->name,
+                                'submitClearCache' => 1,
+                            ]
+                        ),
+                    ],
+                ],
                 'submit' => [
                     'title' => $this->trans('Save', [], 'Admin.Actions'),
                 ],
             ],
         ];
 
-        $lang = new Language((int) Configuration::get('PS_LANG_DEFAULT'));
-
         $helper = new HelperForm();
         $helper->show_toolbar = false;
         $helper->table = $this->table;
-        $helper->default_form_language = $lang->id;
-        $helper->allow_employee_form_lang = Configuration::get('PS_BO_ALLOW_EMPLOYEE_FORM_LANG') ? Configuration::get('PS_BO_ALLOW_EMPLOYEE_FORM_LANG') : 0;
+        $helper->default_form_language = (int) Configuration::get('PS_LANG_DEFAULT');
+        $helper->allow_employee_form_lang = (bool) Configuration::get('PS_BO_ALLOW_EMPLOYEE_FORM_LANG');
         $helper->identifier = $this->identifier;
         $helper->submit_action = 'submitCross';
         $helper->currentIndex = $this->context->link->getAdminLink('AdminModules', false) .
-            '&configure=' . $this->name .
-            '&tab_module=' . $this->tab .
-            '&module_name=' . $this->name;
+            '&configure=' . $this->name;
         $helper->token = Tools::getAdminTokenLite('AdminModules');
         $helper->tpl_vars = [
-            'fields_value' => $this->getConfigFieldsValues(),
+            'fields_value' => [
+                'CROSSSELLING_NBR' => Tools::getValue('CROSSSELLING_NBR', (int) Configuration::get('CROSSSELLING_NBR')),
+                'CROSSSELLING_DISPLAY_PRICE' => Tools::getValue('CROSSSELLING_DISPLAY_PRICE', (bool) Configuration::get('CROSSSELLING_DISPLAY_PRICE')),
+            ],
             'languages' => $this->context->controller->getLanguages(),
-            'id_language' => $this->context->language->id,
+            'id_language' => (int) $this->context->language->id,
         ];
 
         return $helper->generateForm([$fields_form]);
     }
 
-    public function getConfigFieldsValues()
+    /**
+     * Gets Product ids used to retrieve related products already ordered
+     *
+     * @param array{cookie?: Cookie, cart?: Cart, product?: array{id_product: int}, altern: int} $configuration Hooks arguments sent to the widget
+     *
+     * @return int[] Product ids in current Cart and/or Product id viewed
+     */
+    protected function getProductIds(array $configuration)
     {
-        return [
-            'CROSSSELLING_NBR' => Tools::getValue('CROSSSELLING_NBR', Configuration::get('CROSSSELLING_NBR')),
-            'CROSSSELLING_DISPLAY_PRICE' => Tools::getValue('CROSSSELLING_DISPLAY_PRICE', Configuration::get('CROSSSELLING_DISPLAY_PRICE')),
-        ];
-    }
+        $productIds = [];
+        $cart = (isset($configuration['cart'])) ? $configuration['cart'] : $this->context->cart;
 
-    public function getCacheIdKey($productIds)
-    {
-        return parent::getCacheId('ps_crossselling|' . implode('|', $productIds));
-    }
-
-    private function getProductIds($hookName, array $configuration)
-    {
-        if ('displayShoppingCart' === $hookName || 'displayShoppingCartFooter' === $hookName) {
-            $productIds = array_map(function ($elem) {
-                return $elem['id_product'];
-            }, $configuration['cart']->getProducts());
-        } else {
-            $productIds = [$configuration['product']['id_product']];
-        }
-
-        return array_unique($productIds);
-    }
-
-    public function getWidgetVariables($hookName, array $configuration)
-    {
-        $productIds = $this->getProductIds($hookName, $configuration);
-        if (!empty($productIds)) {
-            $products = $this->getOrderProducts($productIds);
-
+        if (Validate::isLoadedObject($cart)) {
+            $products = $cart->getProducts();
             if (!empty($products)) {
-                return [
-                    'products' => $products,
-                ];
+                foreach ($products as $product) {
+                    $productIds[] = (int) $product['id_product'];
+                }
             }
         }
 
-        return false;
-    }
-
-    public function renderWidget($hookName, array $configuration)
-    {
-        $productIds = $this->getProductIds($hookName, $configuration);
-
-        if (empty($productIds)) {
-            return;
+        if (!empty($configuration['product']['id_product']) && !in_array($configuration['product']['id_product'], $productIds)) {
+            $productIds[] = (int) $configuration['product']['id_product'];
         }
 
-        if (!$this->isCached($this->templateFile, $this->getCacheIdKey($productIds))) {
-            $variables = $this->getWidgetVariables($hookName, $configuration);
-
-            if (empty($variables)) {
-                return false;
-            }
-
-            $this->smarty->assign($variables);
-        }
-
-        return $this->fetch($this->templateFile, $this->getCacheIdKey($productIds));
+        return $productIds;
     }
 
+    /**
+     * Gets Product ids already ordered related to given product Ids
+     *
+     * @param int[] $productIds Product ids to find related ordered products
+     *
+     * @return int[] Related Product ids already ordered
+     */
     protected function getOrderProducts(array $productIds = [])
     {
-        $q_orders = 'SELECT o.id_order
-        FROM ' . _DB_PREFIX_ . 'orders o
-        LEFT JOIN ' . _DB_PREFIX_ . 'order_detail od ON (od.id_order = o.id_order)
-        WHERE o.valid = 1
-        AND od.product_id IN (' . implode(',', $productIds) . ')';
+        $orderedProductIds = [];
+        $db = Db::getInstance((bool) _PS_USE_SQL_SLAVE_);
 
-        $orders = Db::getInstance((bool) _PS_USE_SQL_SLAVE_)->executeS($q_orders);
+        try {
+            /** @var FilesystemCache $cache */
+            $cache = $this->get('ps_crossselling.cache.products');
+            $cacheKey = $this->getCacheId() . '|' . implode('|', $productIds);
 
-        if (0 < count($orders)) {
-            $list = '';
-            foreach ($orders as $order) {
-                $list .= (int) $order['id_order'] . ',';
+            if ($cache->has($cacheKey)) {
+                return $cache->get($cacheKey);
             }
-            $list = rtrim($list, ',');
-            $list_product_ids = join(',', $productIds);
-
-            $sql_groups_join = $sql_groups_where = '';
-            if (Group::isFeatureActive()) {
-                $sql_groups_join = '
-                LEFT JOIN `' . _DB_PREFIX_ . 'category_product` cp ON (cp.`id_category` = product_shop.id_category_default AND cp.id_product = product_shop.id_product)
-                LEFT JOIN `' . _DB_PREFIX_ . 'category_group` cg ON (cp.`id_category` = cg.`id_category`)';
-                $groups = FrontController::getCurrentCustomerGroups();
-                $sql_groups_where = 'AND cg.`id_group` ' . (count($groups) ? 'IN (' . implode(',', $groups) . ')' : '=' . (int) Group::getCurrent()->id);
-            }
-
-            $order_products = Db::getInstance((bool) _PS_USE_SQL_SLAVE_)->executeS('
-                SELECT DISTINCT od.product_id
-                FROM ' . _DB_PREFIX_ . 'order_detail od
-                LEFT JOIN ' . _DB_PREFIX_ . 'product p ON (p.id_product = od.product_id)
-                ' . Shop::addSqlAssociation('product', 'p') .
-                (Combination::isFeatureActive() ? 'LEFT JOIN `' . _DB_PREFIX_ . 'product_attribute` pa ON (p.`id_product` = pa.`id_product`)
-                ' . Shop::addSqlAssociation(
-                        'product_attribute',
-                        'pa',
-                        false,
-                        'product_attribute_shop.`default_on` = 1'
-                    ) . '
-                ' . Product::sqlStock(
-                        'p',
-                        'product_attribute_shop',
-                        false,
-                        $this->context->shop
-                    ) : Product::sqlStock(
-                    'p',
-                    'product',
-                    false,
-                    $this->context->shop
-                )) . '
-                LEFT JOIN ' . _DB_PREFIX_ . 'product_lang pl ON (pl.id_product = od.product_id' .
-                Shop::addSqlRestrictionOnLang('pl') . ')
-                LEFT JOIN ' . _DB_PREFIX_ . 'category_lang cl ON (cl.id_category = product_shop.id_category_default'
-                . Shop::addSqlRestrictionOnLang('cl') . ')
-                LEFT JOIN ' . _DB_PREFIX_ . 'image i ON (i.id_product = od.product_id)
-                ' . $sql_groups_join . '
-                WHERE od.id_order IN (' . $list . ')
-                AND pl.id_lang = ' . (int) $this->context->language->id . '
-                AND cl.id_lang = ' . (int) $this->context->language->id . '
-                AND od.product_id NOT IN (' . $list_product_ids . ')
-                AND i.cover = 1
-                AND product_shop.active = 1
-                ' . $sql_groups_where . '
-                ORDER BY RAND()
-                LIMIT ' . (int) Configuration::get('CROSSSELLING_NBR')
-            );
+        } catch (ServiceNotFoundException $exception) {
+            // Some aggressive cache can cause temporary issue until be updated
+            $cache = null;
+            $cacheKey = null;
         }
 
-        if (!empty($order_products)) {
-            $showPrice = (bool) Configuration::get('CROSSSELLING_DISPLAY_PRICE');
+        $queryOrderIds = new DbQuery();
+        $queryOrderIds->select('o.id_order');
+        $queryOrderIds->from('orders', 'o');
+        $queryOrderIds->innerJoin('order_detail', 'od', 'od.id_order = o.id_order');
+        $queryOrderIds->where('o.valid = 1' . Shop::addSqlRestriction(Shop::SHARE_ORDER, 'o'));
+        $queryOrderIds->where('od.product_id IN (' . implode(',', $productIds) . ')');
+        $queryOrderIds->orderBy('o.date_add DESC');
+        $queryOrderIds->limit(1000);
 
-            $assembler = new ProductAssembler($this->context);
+        $resultQueryOrderIds = $db->executeS($queryOrderIds);
 
-            $presenterFactory = new ProductPresenterFactory($this->context);
-            $presentationSettings = $presenterFactory->getPresentationSettings();
-            $presenter = new ProductListingPresenter(
-                new ImageRetriever(
-                    $this->context->link
-                ),
-                $this->context->link,
-                new PriceFormatter(),
-                new ProductColorsRetriever(),
-                $this->context->getTranslator()
-            );
+        if (!empty($resultQueryOrderIds)) {
+            $orderIds = [];
 
-            $productsForTemplate = [];
+            foreach ($resultQueryOrderIds as $resultQueryOrderId) {
+                $orderIds[] = (int) $resultQueryOrderId['id_order'];
+            }
 
-            $presentationSettings->showPrices = $showPrice;
+            $queryOrderedProductIds = new DbQuery();
+            $queryOrderedProductIds->select('DISTINCT od.product_id');
+            $queryOrderedProductIds->from('order_detail', 'od');
+            $queryOrderedProductIds->innerJoin('product', 'p', 'p.id_product = od.product_id');
+            $queryOrderedProductIds->join(Shop::addSqlAssociation('product', 'p'));
+            $queryOrderedProductIds->orderBy('RAND()');
+            $queryOrderedProductIds->limit((int) Configuration::get('CROSSSELLING_NBR'));
+            $queryOrderedProductIds->where('product_shop.active = 1');
+            $queryOrderedProductIds->where('od.product_id NOT IN (' . implode(',', $productIds) . ')');
+            $queryOrderedProductIds->where('od.id_order IN (' . implode(',', $orderIds) . ')');
 
-            if (is_array($order_products)) {
-                foreach ($order_products as $productId) {
-                    $productsForTemplate[] = $presenter->present(
-                        $presentationSettings,
-                        $assembler->assembleProduct(['id_product' => $productId['product_id']]),
-                        $this->context->language
-                    );
+            if (Group::isFeatureActive()) {
+                $queryOrderedProductIds->innerJoin('category_product', 'cp', 'cp.id_category = product_shop.id_category_default AND cp.id_product = product_shop.id_product');
+                $queryOrderedProductIds->innerJoin('category_group', 'cg', 'cp.id_category = cg.id_category');
+                $groups = FrontController::getCurrentCustomerGroups();
+                if (!empty($groups)) {
+                    $queryOrderedProductIds->where('cg.id_group IN (' . implode(',', $groups) . ')');
+                } else {
+                    $queryOrderedProductIds->where('cg.id_group = ' . (int) Configuration::get('PS_UNIDENTIFIED_GROUP'));
                 }
             }
 
-            return $productsForTemplate;
+            $resultQueryOrderedProductIds = $db->executeS($queryOrderedProductIds);
+
+            if (!empty($resultQueryOrderedProductIds)) {
+                foreach ($resultQueryOrderedProductIds as $resultQueryOrderedProductId) {
+                    $orderedProductIds[] = (int) $resultQueryOrderedProductId['product_id'];
+                }
+
+                if ($cache) {
+                    $cache->set($cacheKey, $orderedProductIds);
+                }
+            }
         }
 
-        return false;
+        return $orderedProductIds;
+    }
+
+    /**
+     * Clear cache after product change
+     */
+    public function hookActionObjectProductUpdateAfter()
+    {
+        $this->clearCache();
+    }
+
+    /**
+     * Clear cache after product deletion
+     */
+    public function hookActionObjectProductDeleteAfter()
+    {
+        $this->clearCache();
+    }
+
+    /**
+     * @return bool
+     */
+    protected function clearCache()
+    {
+        // Avoid cache clearing on PrestaShop installation
+        if (defined('PS_INSTALLATION_IN_PROGRESS') && constant('PS_INSTALLATION_IN_PROGRESS')) {
+            return true;
+        }
+
+        // Avoid cache clearing on product import
+        if (defined('PS_MASS_PRODUCT_CREATION') && constant('PS_MASS_PRODUCT_CREATION')) {
+            return true;
+        }
+
+        try {
+            /** @var FilesystemCache $cache */
+            $cache = $this->get('ps_crossselling.cache.products');
+
+            return $cache->clear();
+        } catch (ServiceNotFoundException $exception) {
+            // Some aggressive cache can cause temporary issue until be updated
+            return false;
+        }
     }
 }

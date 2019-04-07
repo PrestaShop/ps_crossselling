@@ -3,4 +3,5 @@ includes:
 
 parameters:
   ignoreErrors:
+    - '#Call to method assign\(\) on an unknown class Smarty_Data#'
     - '#Parameter \#1 \$share of static method ShopCore::addSqlRestriction\(\) expects int, string given\.#'
