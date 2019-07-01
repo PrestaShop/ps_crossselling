@@ -36,6 +36,11 @@ if (!defined('_PS_VERSION_')) {
 
 class Ps_Crossselling extends Module implements WidgetInterface
 {
+    /**
+     * @var string Name of the module running on PS 1.6.x. Used for data migration.
+     */
+    const PS_16_EQUIVALENT_MODULE = 'crossselling';
+
     private $templateFile;
 
     public function __construct()
@@ -61,11 +66,17 @@ class Ps_Crossselling extends Module implements WidgetInterface
 
     public function install()
     {
+        $this->uninstallPrestaShop16Module();
         $this->_clearCache('*');
 
+        if (!Configuration::get('CROSSSELLING_DISPLAY_PRICE')) {
+            Configuration::updateValue('CROSSSELLING_DISPLAY_PRICE', 1);
+        }
+        if (!Configuration::get('CROSSSELLING_NBR')) {
+            Configuration::updateValue('CROSSSELLING_NBR', 8);
+        }
+
         return parent::install()
-            && Configuration::updateValue('CROSSSELLING_DISPLAY_PRICE', 1)
-            && Configuration::updateValue('CROSSSELLING_NBR', 8)
             && $this->registerHook('displayFooterProduct')
             && $this->registerHook('actionOrderStatusPostUpdate');
     }
@@ -77,6 +88,27 @@ class Ps_Crossselling extends Module implements WidgetInterface
         return parent::uninstall()
             && Configuration::deleteByName('CROSSSELLING_DISPLAY_PRICE')
             && Configuration::deleteByName('CROSSSELLING_NBR');
+    }
+
+    /**
+     * Migrate data from 1.6 equivalent module (if applicable), then uninstall
+     */
+    public function uninstallPrestaShop16Module()
+    {
+        if (!Module::isInstalled(self::PS_16_EQUIVALENT_MODULE)) {
+            return false;
+        }
+        $oldModule = Module::getInstanceByName(self::PS_16_EQUIVALENT_MODULE);
+        if ($oldModule) {
+            // This closure calls the parent class to prevent data to be erased
+            // It allows the new module to be configured without migration
+            $parentUninstallClosure = function() {
+                return parent::uninstall();
+            };
+            $parentUninstallClosure = $parentUninstallClosure->bindTo($oldModule, get_class($oldModule));
+            $parentUninstallClosure();
+        }
+        return true;
     }
 
     public function getContent()
