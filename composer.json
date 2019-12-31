@@ -2,7 +2,7 @@
   "name": "prestashop/ps_crossselling",
   "description": "PrestaShop - Cross selling",
   "homepage": "https://github.com/PrestaShop/ps_crossselling",
-  "license": "AFL - Academic Free License (AFL 3.0)",
+  "license": "AFL-3.0",
   "authors": [
     {
       "name": "PrestaShop SA",
