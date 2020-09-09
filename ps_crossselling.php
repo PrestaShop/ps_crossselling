@@ -247,7 +247,7 @@ class Ps_Crossselling extends Module implements WidgetInterface
         FROM '._DB_PREFIX_.'orders o
         LEFT JOIN '._DB_PREFIX_.'order_detail od ON (od.id_order = o.id_order)
         WHERE o.valid = 1
-        AND od.product_id IN ('.implode(',', $productIds).') ORDER BY RAND() LIMIT '.(int)Configuration::get('CROSSSELLING_NBR')*4;
+        AND od.product_id IN ('.implode(',', $productIds).') ORDER BY RAND() LIMIT ' . (int) Configuration::get('CROSSSELLING_NBR')*4;
 
         $orders = Db::getInstance(_PS_USE_SQL_SLAVE_)->executeS($q_orders);
 
