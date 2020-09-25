@@ -1,0 +1,12 @@
+includes:
+	- %currentWorkingDirectory%/vendor/prestashop/php-dev-tools/phpstan/ps-module-extension.neon
+
+parameters:
+  paths:
+    # From PHPStan 0.12, paths to check are relative to the neon file
+    - ../../ps_crossselling.php
+  ignoreErrors:
+    ## On 1.7.2.0
+    - '#Call to method assign\(\) on an unknown class Smarty_Data#'
+  reportUnmatchedIgnoredErrors: false
+  level: 5
