@@ -54,7 +54,7 @@ class Ps_Crossselling extends Module implements WidgetInterface
         parent::__construct();
 
         $this->displayName = $this->trans('Cross-selling', [], 'Modules.Crossselling.Admin');
-        $this->description = $this->trans('Adds a "Customers who bought this product also bought..." section to every product page.', [], 'Modules.Crossselling.Admin');
+        $this->description = $this->trans('Offer your customers the possibility to buy matching items when on a product page.', [], 'Modules.Crossselling.Admin');
 
         $this->templateFile = 'module:ps_crossselling/views/templates/hook/ps_crossselling.tpl';
     }
