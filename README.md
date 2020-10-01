@@ -2,7 +2,7 @@
 
 ## About
 
-Adds a "Customers who bought this product also bought..." section to every product page.
+Offer your customers the possibility to buy matching items when on a product page.
 
 ## Multistore compatibility
 
