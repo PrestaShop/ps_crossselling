@@ -19,7 +19,10 @@
     "preferred-install": "dist",
     "classmap-authoritative": true,
     "optimize-autoloader": true,
-    "prepend-autoloader": false
+    "prepend-autoloader": false,
+    "platform": {
+      "php": "5.4"
+    }
   },
   "autoload": {
     "classmap": [
