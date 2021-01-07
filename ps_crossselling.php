@@ -1,34 +1,34 @@
 <?php
-/*
-* 2007-2016 PrestaShop
-*
-* NOTICE OF LICENSE
-*
-* This source file is subject to the Academic Free License (AFL 3.0)
-* that is bundled with this package in the file LICENSE.txt.
-* It is also available through the world-wide-web at this URL:
-* http://opensource.org/licenses/afl-3.0.php
-* If you did not receive a copy of the license and are unable to
-* obtain it through the world-wide-web, please send an email
-* to license@prestashop.com so we can send you a copy immediately.
-*
-* DISCLAIMER
-*
-* Do not edit or add to this file if you wish to upgrade PrestaShop to newer
-* versions in the future. If you wish to customize PrestaShop for your
-* needs please refer to http://www.prestashop.com for more information.
-*
-*  @author PrestaShop SA <contact@prestashop.com>
-*  @copyright  2007-2016 PrestaShop SA
-*  @license    http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
-*  International Registered Trademark & Property of PrestaShop SA
-*/
+/**
+ * Copyright since 2007 PrestaShop SA and Contributors
+ * PrestaShop is an International Registered Trademark & Property of PrestaShop SA
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Academic Free License 3.0 (AFL-3.0)
+ * that is bundled with this package in the file LICENSE.md.
+ * It is also available through the world-wide-web at this URL:
+ * https://opensource.org/licenses/AFL-3.0
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@prestashop.com so we can send you a copy immediately.
+ *
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
+ * versions in the future. If you wish to customize PrestaShop for your
+ * needs please refer to https://devdocs.prestashop.com/ for more information.
+ *
+ * @author    PrestaShop SA and Contributors <contact@prestashop.com>
+ * @copyright Since 2007 PrestaShop SA and Contributors
+ * @license   https://opensource.org/licenses/AFL-3.0 Academic Free License 3.0 (AFL-3.0)
+ */
 
-use PrestaShop\PrestaShop\Core\Module\WidgetInterface;
 use PrestaShop\PrestaShop\Adapter\Image\ImageRetriever;
 use PrestaShop\PrestaShop\Adapter\Product\PriceFormatter;
-use PrestaShop\PrestaShop\Core\Product\ProductListingPresenter;
 use PrestaShop\PrestaShop\Adapter\Product\ProductColorsRetriever;
+use PrestaShop\PrestaShop\Core\Module\WidgetInterface;
+use PrestaShop\PrestaShop\Core\Product\ProductListingPresenter;
 
 if (!defined('_PS_VERSION_')) {
     exit;
@@ -42,19 +42,19 @@ class Ps_Crossselling extends Module implements WidgetInterface
     {
         $this->name = 'ps_crossselling';
         $this->author = 'PrestaShop';
-        $this->version = '2.0.0';
+        $this->version = '2.0.1';
         $this->need_instance = 0;
 
-        $this->ps_versions_compliancy = array(
+        $this->ps_versions_compliancy = [
             'min' => '1.7.2.0',
             'max' => _PS_VERSION_,
-        );
+        ];
 
         $this->bootstrap = true;
         parent::__construct();
 
-        $this->displayName = $this->trans('Cross-selling', array(), 'Modules.Crossselling.Admin');
-        $this->description = $this->trans('Adds a "Customers who bought this product also bought..." section to every product page.', array(), 'Modules.Crossselling.Admin');
+        $this->displayName = $this->trans('Cross-selling', [], 'Modules.Crossselling.Admin');
+        $this->description = $this->trans('Offer your customers the possibility to buy matching items when on a product page.', [], 'Modules.Crossselling.Admin');
 
         $this->templateFile = 'module:ps_crossselling/views/templates/hook/ps_crossselling.tpl';
     }
@@ -87,23 +87,21 @@ class Ps_Crossselling extends Module implements WidgetInterface
             if (0 != Tools::getValue('displayPrice') && 1 != Tools::getValue('CROSSSELLING_DISPLAY_PRICE')) {
                 $html .= $this->displayError('Invalid displayPrice');
             } elseif (!($product_nbr = Tools::getValue('CROSSSELLING_NBR')) || empty($product_nbr)) {
-                $html .= $this->displayError($this->trans('You must fill in the "Number of displayed products" field.', array(), 'Modules.Crossselling.Admin'));
-            } elseif (0 === (int)$product_nbr) {
-                $html .= $this->displayError($this->trans('Invalid number.', array(), 'Modules.Crossselling.Admin'));
+                $html .= $this->displayError($this->trans('You must fill in the "Number of displayed products" field.', [], 'Modules.Crossselling.Admin'));
+            } elseif (0 === (int) $product_nbr) {
+                $html .= $this->displayError($this->trans('Invalid number.', [], 'Modules.Crossselling.Admin'));
             } else {
-                Configuration::updateValue('CROSSSELLING_DISPLAY_PRICE', (int)Tools::getValue('CROSSSELLING_DISPLAY_PRICE'));
-                Configuration::updateValue('CROSSSELLING_NBR', (int)Tools::getValue('CROSSSELLING_NBR'));
+                Configuration::updateValue('CROSSSELLING_DISPLAY_PRICE', (int) Tools::getValue('CROSSSELLING_DISPLAY_PRICE'));
+                Configuration::updateValue('CROSSSELLING_NBR', (int) Tools::getValue('CROSSSELLING_NBR'));
 
                 $this->_clearCache('*');
 
-                $html .= $this->displayConfirmation($this->trans('The settings have been updated.', array(), 'Admin.Notifications.Success'));
+                $html .= $this->displayConfirmation($this->trans('The settings have been updated.', [], 'Admin.Notifications.Success'));
             }
         }
 
-        return $html.$this->renderForm();
+        return $html . $this->renderForm();
     }
-
-
 
     public function hookActionOrderStatusPostUpdate($params)
     {
@@ -117,46 +115,46 @@ class Ps_Crossselling extends Module implements WidgetInterface
 
     public function renderForm()
     {
-        $fields_form = array(
-            'form' => array(
-                'legend' => array(
-                    'title' => $this->trans('Settings', array(), 'Admin.Global'),
+        $fields_form = [
+            'form' => [
+                'legend' => [
+                    'title' => $this->trans('Settings', [], 'Admin.Global'),
                     'icon' => 'icon-cogs',
-                ),
-                'input' => array(
-                    array(
+                ],
+                'input' => [
+                    [
                         'type' => 'switch',
-                        'label' => $this->trans('Display price on products', array(), 'Modules.Crossselling.Admin'),
+                        'label' => $this->trans('Display price on products', [], 'Modules.Crossselling.Admin'),
                         'name' => 'CROSSSELLING_DISPLAY_PRICE',
-                        'desc' => $this->trans('Show the price on the products in the block.', array(), 'Modules.Crossselling.Admin'),
-                        'values' => array(
-                            array(
+                        'desc' => $this->trans('Show the price on the products in the block.', [], 'Modules.Crossselling.Admin'),
+                        'values' => [
+                            [
                                 'id' => 'active_on',
                                 'value' => 1,
-                                'label' => $this->trans('Enabled', array(), 'Admin.Global'),
-                            ),
-                            array(
+                                'label' => $this->trans('Yes', [], 'Admin.Global'),
+                            ],
+                            [
                                 'id' => 'active_off',
                                 'value' => 0,
-                                'label' => $this->trans('Disabled', array(), 'Admin.Global'),
-                            ),
-                        ),
-                    ),
-                    array(
+                                'label' => $this->trans('No', [], 'Admin.Global'),
+                            ],
+                        ],
+                    ],
+                    [
                         'type' => 'text',
-                        'label' => $this->trans('Number of displayed products', array(), 'Modules.Crossselling.Admin'),
+                        'label' => $this->trans('Number of displayed products', [], 'Modules.Crossselling.Admin'),
                         'name' => 'CROSSSELLING_NBR',
                         'class' => 'fixed-width-xs',
-                        'desc' => $this->trans('Set the number of products displayed in this block.', array(), 'Modules.Crossselling.Admin'),
-                    ),
-                ),
-                'submit' => array(
-                    'title' => $this->trans('Save', array(), 'Admin.Actions'),
-                ),
-            ),
-        );
+                        'desc' => $this->trans('Set the number of products displayed in this block.', [], 'Modules.Crossselling.Admin'),
+                    ],
+                ],
+                'submit' => [
+                    'title' => $this->trans('Save', [], 'Admin.Actions'),
+                ],
+            ],
+        ];
 
-        $lang = new Language((int)Configuration::get('PS_LANG_DEFAULT'));
+        $lang = new Language((int) Configuration::get('PS_LANG_DEFAULT'));
 
         $helper = new HelperForm();
         $helper->show_toolbar = false;
@@ -170,21 +168,21 @@ class Ps_Crossselling extends Module implements WidgetInterface
             '&tab_module=' . $this->tab .
             '&module_name=' . $this->name;
         $helper->token = Tools::getAdminTokenLite('AdminModules');
-        $helper->tpl_vars = array(
+        $helper->tpl_vars = [
             'fields_value' => $this->getConfigFieldsValues(),
             'languages' => $this->context->controller->getLanguages(),
-            'id_language' => $this->context->language->id
-        );
+            'id_language' => $this->context->language->id,
+        ];
 
-        return $helper->generateForm(array($fields_form));
+        return $helper->generateForm([$fields_form]);
     }
 
     public function getConfigFieldsValues()
     {
-        return array(
+        return [
             'CROSSSELLING_NBR' => Tools::getValue('CROSSSELLING_NBR', Configuration::get('CROSSSELLING_NBR')),
             'CROSSSELLING_DISPLAY_PRICE' => Tools::getValue('CROSSSELLING_DISPLAY_PRICE', Configuration::get('CROSSSELLING_DISPLAY_PRICE')),
-        );
+        ];
     }
 
     public function getCacheIdKey($productIds)
@@ -194,12 +192,12 @@ class Ps_Crossselling extends Module implements WidgetInterface
 
     private function getProductIds($hookName, array $configuration)
     {
-        if ('displayShoppingCart' === $hookName) {
+        if ('displayShoppingCart' === $hookName || 'displayShoppingCartFooter' === $hookName) {
             $productIds = array_map(function ($elem) {
                 return $elem['id_product'];
             }, $configuration['cart']->getProducts());
         } else {
-            $productIds = array($configuration['product']['id_product']);
+            $productIds = [$configuration['product']['id_product']];
         }
 
         return array_unique($productIds);
@@ -212,11 +210,12 @@ class Ps_Crossselling extends Module implements WidgetInterface
             $products = $this->getOrderProducts($productIds);
 
             if (!empty($products)) {
-                return array(
+                return [
                     'products' => $products,
-                );
+                ];
             }
         }
+
         return false;
     }
 
@@ -241,70 +240,71 @@ class Ps_Crossselling extends Module implements WidgetInterface
         return $this->fetch($this->templateFile, $this->getCacheIdKey($productIds));
     }
 
-    protected function getOrderProducts(array $productIds = array())
+    protected function getOrderProducts(array $productIds = [])
     {
         $q_orders = 'SELECT o.id_order
-        FROM '._DB_PREFIX_.'orders o
-        LEFT JOIN '._DB_PREFIX_.'order_detail od ON (od.id_order = o.id_order)
+        FROM ' . _DB_PREFIX_ . 'orders o
+        LEFT JOIN ' . _DB_PREFIX_ . 'order_detail od ON (od.id_order = o.id_order)
         WHERE o.valid = 1
-        AND od.product_id IN ('.implode(',', $productIds).')';
+        AND od.product_id IN (' . implode(',', $productIds) . ')';
 
-        $orders = Db::getInstance(_PS_USE_SQL_SLAVE_)->executeS($q_orders);
+        $orders = Db::getInstance((bool) _PS_USE_SQL_SLAVE_)->executeS($q_orders);
 
         if (0 < count($orders)) {
             $list = '';
             foreach ($orders as $order) {
-                $list .= (int)$order['id_order'].',';
+                $list .= (int) $order['id_order'] . ',';
             }
             $list = rtrim($list, ',');
             $list_product_ids = join(',', $productIds);
 
+            $sql_groups_join = $sql_groups_where = '';
             if (Group::isFeatureActive()) {
                 $sql_groups_join = '
-                LEFT JOIN `'._DB_PREFIX_.'category_product` cp ON (cp.`id_category` = product_shop.id_category_default AND cp.id_product = product_shop.id_product)
-                LEFT JOIN `'._DB_PREFIX_.'category_group` cg ON (cp.`id_category` = cg.`id_category`)';
+                LEFT JOIN `' . _DB_PREFIX_ . 'category_product` cp ON (cp.`id_category` = product_shop.id_category_default AND cp.id_product = product_shop.id_product)
+                LEFT JOIN `' . _DB_PREFIX_ . 'category_group` cg ON (cp.`id_category` = cg.`id_category`)';
                 $groups = FrontController::getCurrentCustomerGroups();
-                $sql_groups_where = 'AND cg.`id_group` '. (count($groups) ? 'IN ('.implode(',', $groups) . ')' : '=' . (int)Group::getCurrent()->id);
+                $sql_groups_where = 'AND cg.`id_group` ' . (count($groups) ? 'IN (' . implode(',', $groups) . ')' : '=' . (int) Group::getCurrent()->id);
             }
 
-            $order_products = Db::getInstance(_PS_USE_SQL_SLAVE_)->executeS('
+            $order_products = Db::getInstance((bool) _PS_USE_SQL_SLAVE_)->executeS('
                 SELECT DISTINCT od.product_id
-                FROM '._DB_PREFIX_.'order_detail od
-                LEFT JOIN '._DB_PREFIX_.'product p ON (p.id_product = od.product_id)
-                '.Shop::addSqlAssociation('product', 'p').
-                (Combination::isFeatureActive() ? 'LEFT JOIN `' . _DB_PREFIX_.'product_attribute` pa ON (p.`id_product` = pa.`id_product`)
+                FROM ' . _DB_PREFIX_ . 'order_detail od
+                LEFT JOIN ' . _DB_PREFIX_ . 'product p ON (p.id_product = od.product_id)
+                ' . Shop::addSqlAssociation('product', 'p') .
+                (Combination::isFeatureActive() ? 'LEFT JOIN `' . _DB_PREFIX_ . 'product_attribute` pa ON (p.`id_product` = pa.`id_product`)
                 ' . Shop::addSqlAssociation(
                         'product_attribute',
                         'pa',
                         false,
                         'product_attribute_shop.`default_on` = 1'
-                    ).'
+                    ) . '
                 ' . Product::sqlStock(
                         'p',
                         'product_attribute_shop',
                         false,
                         $this->context->shop
-                    ) :  Product::sqlStock(
+                    ) : Product::sqlStock(
                     'p',
                     'product',
                     false,
                     $this->context->shop
-                )).'
-                LEFT JOIN '._DB_PREFIX_.'product_lang pl ON (pl.id_product = od.product_id' .
-                Shop::addSqlRestrictionOnLang('pl').')
-                LEFT JOIN '._DB_PREFIX_.'category_lang cl ON (cl.id_category = product_shop.id_category_default'
-                .Shop::addSqlRestrictionOnLang('cl').')
-                LEFT JOIN '._DB_PREFIX_.'image i ON (i.id_product = od.product_id)
-                '.(Group::isFeatureActive() ? $sql_groups_join : '').'
-                WHERE od.id_order IN ('.$list.')
-                AND pl.id_lang = '.(int)$this->context->language->id.'
-                AND cl.id_lang = '.(int)$this->context->language->id.'
-                AND od.product_id NOT IN ('.$list_product_ids.')
+                )) . '
+                LEFT JOIN ' . _DB_PREFIX_ . 'product_lang pl ON (pl.id_product = od.product_id' .
+                Shop::addSqlRestrictionOnLang('pl') . ')
+                LEFT JOIN ' . _DB_PREFIX_ . 'category_lang cl ON (cl.id_category = product_shop.id_category_default'
+                . Shop::addSqlRestrictionOnLang('cl') . ')
+                LEFT JOIN ' . _DB_PREFIX_ . 'image i ON (i.id_product = od.product_id)
+                ' . $sql_groups_join . '
+                WHERE od.id_order IN (' . $list . ')
+                AND pl.id_lang = ' . (int) $this->context->language->id . '
+                AND cl.id_lang = ' . (int) $this->context->language->id . '
+                AND od.product_id NOT IN (' . $list_product_ids . ')
                 AND i.cover = 1
                 AND product_shop.active = 1
-                '.(Group::isFeatureActive() ? $sql_groups_where : '').'
+                ' . $sql_groups_where . '
                 ORDER BY RAND()
-                LIMIT '.(int)Configuration::get('CROSSSELLING_NBR')
+                LIMIT ' . (int) Configuration::get('CROSSSELLING_NBR')
             );
         }
 
@@ -325,7 +325,7 @@ class Ps_Crossselling extends Module implements WidgetInterface
                 $this->context->getTranslator()
             );
 
-            $productsForTemplate = array();
+            $productsForTemplate = [];
 
             $presentationSettings->showPrices = $showPrice;
 
@@ -333,7 +333,7 @@ class Ps_Crossselling extends Module implements WidgetInterface
                 foreach ($order_products as $productId) {
                     $productsForTemplate[] = $presenter->present(
                         $presentationSettings,
-                        $assembler->assembleProduct(array('id_product' => $productId['product_id'])),
+                        $assembler->assembleProduct(['id_product' => $productId['product_id']]),
                         $this->context->language
                     );
                 }
