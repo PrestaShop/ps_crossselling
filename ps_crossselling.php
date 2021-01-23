@@ -67,7 +67,10 @@ class Ps_Crossselling extends Module implements WidgetInterface
             && Configuration::updateValue('CROSSSELLING_DISPLAY_PRICE', 1)
             && Configuration::updateValue('CROSSSELLING_NBR', 8)
             && $this->registerHook('displayFooterProduct')
-            && $this->registerHook('actionOrderStatusPostUpdate');
+            && $this->registerHook('actionOrderStatusPostUpdate')
+            && $this->registerHook('updateproduct')
+            && $this->registerHook('deleteproduct')
+        ;
     }
 
     public function uninstall()
@@ -104,6 +107,16 @@ class Ps_Crossselling extends Module implements WidgetInterface
     }
 
     public function hookActionOrderStatusPostUpdate($params)
+    {
+        $this->_clearCache('*');
+    }
+
+    public function hookUpdateProduct($params)
+    {
+        $this->_clearCache('*');
+    }
+
+    public function hookDeleteProduct($params)
     {
         $this->_clearCache('*');
     }
