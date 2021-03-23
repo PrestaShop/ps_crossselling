@@ -252,7 +252,7 @@ class Ps_Crossselling extends Module implements WidgetInterface
         WHERE o.valid = 1
         AND od.product_id IN (' . implode(',', $productIds) . ')
         ORDER BY o.id_order DESC
-        LIMIT 30';
+        LIMIT ' . ((int) Configuration::get('CROSSSELLING_NBR')) * 50;
 
         $orders = Db::getInstance((bool) _PS_USE_SQL_SLAVE_)->executeS($q_orders);
 
