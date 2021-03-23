@@ -247,7 +247,7 @@ class Ps_Crossselling extends Module implements WidgetInterface
         LEFT JOIN ' . _DB_PREFIX_ . 'order_detail od ON (od.id_order = o.id_order)
         WHERE o.valid = 1
         AND od.product_id IN (' . implode(',', $productIds) . ')
-        ORDER BY date_add desc LIMIT 100';
+        ORDER BY date_add desc LIMIT ' . ((int)Configuration::get('CROSSSELLING_NBR'))*50;
 
         $orders = Db::getInstance((bool) _PS_USE_SQL_SLAVE_)->executeS($q_orders);
 
