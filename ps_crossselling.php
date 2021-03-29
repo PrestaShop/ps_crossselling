@@ -195,7 +195,7 @@ class Ps_Crossselling extends Module implements WidgetInterface
         if ('displayShoppingCart' === $hookName || 'displayShoppingCartFooter' === $hookName) {
             $productIds = array_map(function ($elem) {
                 return $elem['id_product'];
-            }, $configuration['cart']->getProducts());
+            }, Context::getContext()->cart->getProducts());
         } else {
             $productIds = [$configuration['product']['id_product']];
         }
