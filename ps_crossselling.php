@@ -105,7 +105,10 @@ class Ps_Crossselling extends Module implements WidgetInterface
 
     public function hookActionOrderStatusPostUpdate($params)
     {
-        $this->_clearCache('*');
+        $products = OrderDetail::getList((int) $params['id_order']);
+        foreach ($products as $p) {
+            $this->_clearCache('*', $this->getCacheIdKey([$p['product_id']]));
+        }
     }
 
     protected function _clearCache($template, $cacheId = null, $compileId = null)
