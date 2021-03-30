@@ -289,18 +289,9 @@ class Ps_Crossselling extends Module implements WidgetInterface
                     'product',
                     false,
                     $this->context->shop
-                )) . '
-                LEFT JOIN ' . _DB_PREFIX_ . 'product_lang pl ON (pl.id_product = od.product_id' .
-                Shop::addSqlRestrictionOnLang('pl') . ')
-                LEFT JOIN ' . _DB_PREFIX_ . 'category_lang cl ON (cl.id_category = product_shop.id_category_default'
-                . Shop::addSqlRestrictionOnLang('cl') . ')
-                LEFT JOIN ' . _DB_PREFIX_ . 'image i ON (i.id_product = od.product_id)
-                ' . $sql_groups_join . '
+                )) . $sql_groups_join . '
                 WHERE od.id_order IN (' . $list . ')
-                AND pl.id_lang = ' . (int) $this->context->language->id . '
-                AND cl.id_lang = ' . (int) $this->context->language->id . '
                 AND od.product_id NOT IN (' . $list_product_ids . ')
-                AND i.cover = 1
                 AND product_shop.active = 1
                 ' . $sql_groups_where . '
                 ORDER BY RAND()
