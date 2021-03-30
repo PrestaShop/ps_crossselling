@@ -113,7 +113,7 @@ class Ps_Crossselling extends Module implements WidgetInterface
 
     protected function _clearCache($template, $cacheId = null, $compileId = null)
     {
-        parent::_clearCache($this->templateFile);
+        parent::_clearCache($this->templateFile, $cacheId);
     }
 
     public function renderForm()
