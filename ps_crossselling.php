@@ -105,12 +105,15 @@ class Ps_Crossselling extends Module implements WidgetInterface
 
     public function hookActionOrderStatusPostUpdate($params)
     {
-        $this->_clearCache('*');
+        $products = OrderDetail::getList((int) $params['id_order']);
+        foreach ($products as $p) {
+            $this->_clearCache('*', $this->getCacheIdKey([$p['product_id']]));
+        }
     }
 
     protected function _clearCache($template, $cacheId = null, $compileId = null)
     {
-        parent::_clearCache($this->templateFile);
+        parent::_clearCache($this->templateFile, $cacheId);
     }
 
     public function renderForm()
@@ -246,7 +249,9 @@ class Ps_Crossselling extends Module implements WidgetInterface
         FROM ' . _DB_PREFIX_ . 'orders o
         LEFT JOIN ' . _DB_PREFIX_ . 'order_detail od ON (od.id_order = o.id_order)
         WHERE o.valid = 1
-        AND od.product_id IN (' . implode(',', $productIds) . ')';
+        AND od.product_id IN (' . implode(',', $productIds) . ')
+        ORDER BY o.id_order DESC
+        LIMIT 30';
 
         $orders = Db::getInstance((bool) _PS_USE_SQL_SLAVE_)->executeS($q_orders);
 
@@ -289,18 +294,9 @@ class Ps_Crossselling extends Module implements WidgetInterface
                     'product',
                     false,
                     $this->context->shop
-                )) . '
-                LEFT JOIN ' . _DB_PREFIX_ . 'product_lang pl ON (pl.id_product = od.product_id' .
-                Shop::addSqlRestrictionOnLang('pl') . ')
-                LEFT JOIN ' . _DB_PREFIX_ . 'category_lang cl ON (cl.id_category = product_shop.id_category_default'
-                . Shop::addSqlRestrictionOnLang('cl') . ')
-                LEFT JOIN ' . _DB_PREFIX_ . 'image i ON (i.id_product = od.product_id)
-                ' . $sql_groups_join . '
+                )) . $sql_groups_join . '
                 WHERE od.id_order IN (' . $list . ')
-                AND pl.id_lang = ' . (int) $this->context->language->id . '
-                AND cl.id_lang = ' . (int) $this->context->language->id . '
                 AND od.product_id NOT IN (' . $list_product_ids . ')
-                AND i.cover = 1
                 AND product_shop.active = 1
                 ' . $sql_groups_where . '
                 ORDER BY RAND()
