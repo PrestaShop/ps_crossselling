@@ -344,4 +344,13 @@ class Ps_Crossselling extends Module implements WidgetInterface
 
         return false;
     }
+
+    protected function getCacheId($name = null)
+    {
+        $cacheId = parent::getCacheId($name);
+        if(!empty($this->context->customer->id)){
+            $cacheId .= '|' . (int) $this->context->customer->id;
+        }
+        return $cacheId;
+    }    
 }
