@@ -82,16 +82,17 @@ class Ps_Crossselling extends Module implements WidgetInterface
     public function getContent()
     {
         $html = '';
+        $product_nbr = Tools::getValue('CROSSSELLING_NBR');
 
         if (Tools::isSubmit('submitCross')) {
-            if (0 != Tools::getValue('displayPrice') && 1 != Tools::getValue('CROSSSELLING_DISPLAY_PRICE')) {
+            if (0 != Tools::getValue('CROSSSELLING_DISPLAY_PRICE') && 1 != Tools::getValue('CROSSSELLING_DISPLAY_PRICE')) {
                 $html .= $this->displayError('Invalid displayPrice');
-            } elseif (!($product_nbr = Tools::getValue('CROSSSELLING_NBR')) || empty($product_nbr)) {
+            } elseif (empty($product_nbr)) {
                 $html .= $this->displayError($this->trans('You must fill in the "Number of displayed products" field.', [], 'Modules.Crossselling.Admin'));
-            } elseif (0 === (int) $product_nbr) {
+            } elseif (!Validate::isInt($product_nbr) || $product_nbr <= 0) {
                 $html .= $this->displayError($this->trans('Invalid number.', [], 'Modules.Crossselling.Admin'));
             } else {
-                Configuration::updateValue('CROSSSELLING_DISPLAY_PRICE', (int) Tools::getValue('CROSSSELLING_DISPLAY_PRICE'));
+                Configuration::updateValue('CROSSSELLING_DISPLAY_PRICE', (bool) Tools::getValue('CROSSSELLING_DISPLAY_PRICE'));
                 Configuration::updateValue('CROSSSELLING_NBR', (int) Tools::getValue('CROSSSELLING_NBR'));
 
                 $this->_clearCache('*');
