@@ -302,6 +302,7 @@ class Ps_Crossselling extends Module implements WidgetInterface
                 AND od.product_id NOT IN (' . $list_product_ids . ')
                 AND i.cover = 1
                 AND product_shop.active = 1
+                AND product_shop.visibility IN ("both", "catalog", "search")
                 ' . $sql_groups_where . '
                 ORDER BY RAND()
                 LIMIT ' . (int) Configuration::get('CROSSSELLING_NBR')
