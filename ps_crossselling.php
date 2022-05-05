@@ -36,6 +36,7 @@ if (!defined('_PS_VERSION_')) {
 
 class Ps_Crossselling extends Module implements WidgetInterface
 {
+    const LIMIT_FACTOR = 50;
     private $templateFile;
 
     public function __construct()
@@ -252,7 +253,7 @@ class Ps_Crossselling extends Module implements WidgetInterface
         WHERE o.valid = 1
         AND od.product_id IN (' . implode(',', $productIds) . ')
         ORDER BY o.id_order DESC
-        LIMIT 30';
+        LIMIT ' . ((int) Configuration::get('CROSSSELLING_NBR')) * static::LIMIT_FACTOR;
 
         $orders = Db::getInstance((bool) _PS_USE_SQL_SLAVE_)->executeS($q_orders);
 
