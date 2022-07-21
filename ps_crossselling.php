@@ -279,24 +279,7 @@ class Ps_Crossselling extends Module implements WidgetInterface
                 FROM ' . _DB_PREFIX_ . 'order_detail od
                 LEFT JOIN ' . _DB_PREFIX_ . 'product p ON (p.id_product = od.product_id)
                 ' . Shop::addSqlAssociation('product', 'p') .
-                (Combination::isFeatureActive() ? 'LEFT JOIN `' . _DB_PREFIX_ . 'product_attribute` pa ON (p.`id_product` = pa.`id_product`)
-                ' . Shop::addSqlAssociation(
-                        'product_attribute',
-                        'pa',
-                        false,
-                        'product_attribute_shop.`default_on` = 1'
-                    ) . '
-                ' . Product::sqlStock(
-                        'p',
-                        'product_attribute_shop',
-                        false,
-                        $this->context->shop
-                    ) : Product::sqlStock(
-                    'p',
-                    'product',
-                    false,
-                    $this->context->shop
-                )) . $sql_groups_join . '
+                $sql_groups_join . '
                 WHERE od.id_order IN (' . $list . ')
                 AND od.product_id NOT IN (' . $list_product_ids . ')
                 AND product_shop.active = 1
