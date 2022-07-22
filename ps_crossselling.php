@@ -219,11 +219,16 @@ class Ps_Crossselling extends Module implements WidgetInterface
 
     public function getConfigFieldsValues()
     {
+        $nbr_products = Tools::getValue('CROSSSELLING_NBR', Configuration::get('CROSSSELLING_NBR'));
+        $nbr_orders = Tools::getValue('CROSSSELLING_NBR_ORDERS', Configuration::get('CROSSSELLING_NBR_ORDERS'));
+        if ($nbr_orders < $nbr_products) {
+            $nbr_orders = 3 * $nbr_products;
+        }
         return [
-            'CROSSSELLING_NBR' => Tools::getValue('CROSSSELLING_NBR', Configuration::get('CROSSSELLING_NBR')),
+            'CROSSSELLING_NBR' => $nbr_products,
             'CROSSSELLING_DISPLAY_PRICE' => Tools::getValue('CROSSSELLING_DISPLAY_PRICE', Configuration::get('CROSSSELLING_DISPLAY_PRICE')),
             'CROSSSELLING_ORDER' => Tools::getValue('CROSSSELLING_ORDER', Configuration::get('CROSSSELLING_ORDER')),
-            'CROSSSELLING_NBR_ORDERS' => Tools::getValue('CROSSSELLING_NBR_ORDERS', Configuration::get('CROSSSELLING_NBR_ORDERS')),
+            'CROSSSELLING_NBR_ORDERS' => $nbr_orders,
         ];
     }
 
@@ -284,13 +289,18 @@ class Ps_Crossselling extends Module implements WidgetInterface
 
     protected function getOrderProducts(array $productIds = [])
     {
+        $nbr_products = (int) Configuration::get('CROSSSELLING_NBR');
+        $nbr_orders = (int) Configuration::get('CROSSSELLING_NBR_ORDERS');
+        if ($nbr_orders < $nbr_products) {
+            $nbr_orders = 3 * $nbr_products;
+        }
         $q_orders = 'SELECT o.id_order
         FROM ' . _DB_PREFIX_ . 'orders o
         LEFT JOIN ' . _DB_PREFIX_ . 'order_detail od ON (od.id_order = o.id_order)
         WHERE o.valid = 1
         AND od.product_id IN (' . implode(',', $productIds) . ')
         ORDER BY o.id_order DESC
-        LIMIT ' . ((int) Configuration::get('CROSSSELLING_NBR_ORDERS'));
+        LIMIT ' . $nbr_orders;
 
         $orders = Db::getInstance((bool) _PS_USE_SQL_SLAVE_)->executeS($q_orders);
 
@@ -339,7 +349,7 @@ class Ps_Crossselling extends Module implements WidgetInterface
                 AND product_shop.active = 1
                 ' . $sql_groups_where .
                 (Configuration::get('CROSSSELLING_ORDER') ? ' GROUP BY od.product_id ORDER BY count(*) DESC' : ' ORDER BY RAND()') . '
-                LIMIT ' . (int) Configuration::get('CROSSSELLING_NBR')
+                LIMIT ' . $nbr_products
             );
         }
 
