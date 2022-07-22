@@ -36,7 +36,6 @@ if (!defined('_PS_VERSION_')) {
 
 class Ps_Crossselling extends Module implements WidgetInterface
 {
-    const LIMIT_FACTOR = 50;
     private $templateFile;
 
     public function __construct()
@@ -68,6 +67,8 @@ class Ps_Crossselling extends Module implements WidgetInterface
         return parent::install()
             && Configuration::updateValue('CROSSSELLING_DISPLAY_PRICE', 1)
             && Configuration::updateValue('CROSSSELLING_NBR', 8)
+            && Configuration::updateValue('CROSSSELLING_ORDER', 0)
+            && Configuration::updateValue('CROSSSELLING_NBR_ORDERS', 24)
             && $this->registerHook('displayFooterProduct')
             && $this->registerHook('actionOrderStatusPostUpdate');
     }
@@ -78,7 +79,9 @@ class Ps_Crossselling extends Module implements WidgetInterface
 
         return parent::uninstall()
             && Configuration::deleteByName('CROSSSELLING_DISPLAY_PRICE')
-            && Configuration::deleteByName('CROSSSELLING_NBR');
+            && Configuration::deleteByName('CROSSSELLING_NBR')
+            && Configuration::deleteByName('CROSSSELLING_ORDER')
+            && Configuration::deleteByName('CROSSSELLING_NBR_ORDERS');
     }
 
     public function getContent()
@@ -92,9 +95,15 @@ class Ps_Crossselling extends Module implements WidgetInterface
                 $html .= $this->displayError($this->trans('You must fill in the "Number of displayed products" field.', [], 'Modules.Crossselling.Admin'));
             } elseif (0 === (int) $product_nbr) {
                 $html .= $this->displayError($this->trans('Invalid number.', [], 'Modules.Crossselling.Admin'));
+            } elseif (!($order_nbr = Tools::getValue('CROSSSELLING_NBR_ORDERS')) || empty($order_nbr)) {
+                $html .= $this->displayError($this->trans('You must fill in the "Number of orders to take into account" field.', [], 'Modules.Crossselling.Admin'));
+            } elseif (Tools::getValue('CROSSSELLING_NBR') > Tools::getValue('CROSSSELLING_NBR_ORDERS')) {
+                $html .= $this->displayError($this->trans('The number of orders must be larger than the number of products.', [], 'Modules.Crossselling.Admin'));
             } else {
                 Configuration::updateValue('CROSSSELLING_DISPLAY_PRICE', (int) Tools::getValue('CROSSSELLING_DISPLAY_PRICE'));
                 Configuration::updateValue('CROSSSELLING_NBR', (int) Tools::getValue('CROSSSELLING_NBR'));
+                Configuration::updateValue('CROSSSELLING_ORDER', (int) Tools::getValue('CROSSSELLING_ORDER'));
+                Configuration::updateValue('CROSSSELLING_NBR_ORDERS', (int) Tools::getValue('CROSSSELLING_NBR_ORDERS'));
 
                 $this->_clearCache('*');
 
@@ -152,6 +161,32 @@ class Ps_Crossselling extends Module implements WidgetInterface
                         'class' => 'fixed-width-xs',
                         'desc' => $this->trans('Set the number of products displayed in this block.', [], 'Modules.Crossselling.Admin'),
                     ],
+                    [
+                        'type' => 'text',
+                        'label' => $this->trans('Number of orders to take into account', [], 'Modules.Crossselling.Admin'),
+                        'name' => 'CROSSSELLING_NBR_ORDERS',
+                        'class' => 'fixed-width-xs',
+                        'desc' => $this->trans('Set the maximum number of orders to analyze.', [], 'Modules.Crossselling.Admin'),
+                        'hint' => $this->trans('A too big number degrades performance, a too small number may not allow to find enough products.', [], 'Modules.Crossselling.Admin'),
+                    ],
+                    [
+                        'type' => 'switch',
+                        'label' => $this->trans('Order of products displayed', [], 'Modules.Crossselling.Admin'),
+                        'name' => 'CROSSSELLING_ORDER',
+                        'desc' => $this->trans('How to choose the products that are displayed.', [], 'Modules.Crossselling.Admin'),
+                        'values' => [
+                            [
+                                'id' => 'active_on',
+                                'value' => 1,
+                                'label' => $this->trans('Frequently bought together', [], 'Modules.Crossselling.Admin'),
+                            ],
+                            [
+                                'id' => 'active_off',
+                                'value' => 0,
+                                'label' => $this->trans('Random order', [], 'Modules.Crossselling.Admin'),
+                            ],
+                        ],
+                    ],
                 ],
                 'submit' => [
                     'title' => $this->trans('Save', [], 'Admin.Actions'),
@@ -187,6 +222,8 @@ class Ps_Crossselling extends Module implements WidgetInterface
         return [
             'CROSSSELLING_NBR' => Tools::getValue('CROSSSELLING_NBR', Configuration::get('CROSSSELLING_NBR')),
             'CROSSSELLING_DISPLAY_PRICE' => Tools::getValue('CROSSSELLING_DISPLAY_PRICE', Configuration::get('CROSSSELLING_DISPLAY_PRICE')),
+            'CROSSSELLING_ORDER' => Tools::getValue('CROSSSELLING_ORDER', Configuration::get('CROSSSELLING_ORDER')),
+            'CROSSSELLING_NBR_ORDERS' => Tools::getValue('CROSSSELLING_NBR_ORDERS', Configuration::get('CROSSSELLING_NBR_ORDERS')),
         ];
     }
 
@@ -253,7 +290,7 @@ class Ps_Crossselling extends Module implements WidgetInterface
         WHERE o.valid = 1
         AND od.product_id IN (' . implode(',', $productIds) . ')
         ORDER BY o.id_order DESC
-        LIMIT ' . ((int) Configuration::get('CROSSSELLING_NBR')) * static::LIMIT_FACTOR;
+        LIMIT ' . ((int) Configuration::get('CROSSSELLING_NBR_ORDERS'));
 
         $orders = Db::getInstance((bool) _PS_USE_SQL_SLAVE_)->executeS($q_orders);
 
@@ -300,8 +337,8 @@ class Ps_Crossselling extends Module implements WidgetInterface
                 WHERE od.id_order IN (' . $list . ')
                 AND od.product_id NOT IN (' . $list_product_ids . ')
                 AND product_shop.active = 1
-                ' . $sql_groups_where . '
-                ORDER BY RAND()
+                ' . $sql_groups_where .
+                (Configuration::get('CROSSSELLING_ORDER') ? ' GROUP BY od.product_id ORDER BY count(*) DESC' : ' ORDER BY RAND()') . '
                 LIMIT ' . (int) Configuration::get('CROSSSELLING_NBR')
             );
         }
