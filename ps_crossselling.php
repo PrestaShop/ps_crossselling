@@ -152,7 +152,7 @@ class Ps_Crossselling extends Module implements WidgetInterface
                         'type' => 'text',
                         'label' => $this->trans('Cache life time', [], 'Modules.Crossselling.Admin'),
                         'name' => 'CROSSSELLING_CACHE_LIFE',
-                        'class' => 'fixed-width-xs',
+                        'class' => 'fixed-width-sm',
                         'desc' => $this->trans('Indicate the time in seconds.', [], 'Modules.Crossselling.Admin'),
                         'hint' => $this->trans('The cache will be cleared at this interval. If left empty or less than a minute, the cache is disabled.', [], 'Modules.Crossselling.Admin'),
                     ],
