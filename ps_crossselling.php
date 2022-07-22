@@ -63,19 +63,16 @@ class Ps_Crossselling extends Module implements WidgetInterface
 
     public function install()
     {
-        $this->_clearCache('*');
-
         return parent::install()
             && Configuration::updateValue('CROSSSELLING_DISPLAY_PRICE', 1)
             && Configuration::updateValue('CROSSSELLING_NBR', 8)
             && $this->registerHook('displayFooterProduct')
-            && $this->registerHook('actionOrderStatusPostUpdate');
+            && $this->registerHook('actionObjectProductUpdateAfter')
+            && $this->registerHook('actionObjectProductDeleteAfter');
     }
 
     public function uninstall()
     {
-        $this->_clearCache('*');
-
         return parent::uninstall()
             && Configuration::deleteByName('CROSSSELLING_DISPLAY_PRICE')
             && Configuration::deleteByName('CROSSSELLING_NBR');
@@ -96,26 +93,27 @@ class Ps_Crossselling extends Module implements WidgetInterface
                 Configuration::updateValue('CROSSSELLING_DISPLAY_PRICE', (int) Tools::getValue('CROSSSELLING_DISPLAY_PRICE'));
                 Configuration::updateValue('CROSSSELLING_NBR', (int) Tools::getValue('CROSSSELLING_NBR'));
 
-                $this->_clearCache('*');
+                $this->_clearCache($this->templateFile);
 
                 $html .= $this->displayConfirmation($this->trans('The settings have been updated.', [], 'Admin.Notifications.Success'));
             }
         }
 
+        if (Tools::isSubmit('submitClearCache') && $this->_clearCache($this->templateFile)) {
+            $html .= $this->displayConfirmation($this->trans('All caches cleared successfully', [], 'Admin.Advparameters.Notification'));
+        }
+
         return $html . $this->renderForm();
     }
 
-    public function hookActionOrderStatusPostUpdate($params)
+    public function hookActionObjectProductUpdateAfter($params)
     {
-        $products = OrderDetail::getList((int) $params['id_order']);
-        foreach ($products as $p) {
-            $this->_clearCache('*', $this->getCacheIdKey([$p['product_id']]));
-        }
+        $this->_clearCache($this->templateFile);
     }
 
-    protected function _clearCache($template, $cacheId = null, $compileId = null)
+    public function hookActionObjectProductDeleteAfter($params)
     {
-        parent::_clearCache($this->templateFile, $cacheId);
+        $this->_clearCache($this->templateFile);
     }
 
     public function renderForm()
@@ -151,6 +149,22 @@ class Ps_Crossselling extends Module implements WidgetInterface
                         'name' => 'CROSSSELLING_NBR',
                         'class' => 'fixed-width-xs',
                         'desc' => $this->trans('Set the number of products displayed in this block.', [], 'Modules.Crossselling.Admin'),
+                    ],
+                ],
+                'buttons' => [
+                    'clear_cache' => [
+                        'id' => 'clear_cache',
+                        'title' => $this->trans('Clear cache', [], 'Admin.Advparameters.Feature'),
+                        'icon' => 'process-icon-eraser',
+                        'href' => $this->context->link->getAdminLink(
+                            'AdminModules',
+                            true,
+                            [],
+                            [
+                                'configure' => $this->name,
+                                'submitClearCache' => 1,
+                            ]
+                        ),
                     ],
                 ],
                 'submit' => [
@@ -190,9 +204,35 @@ class Ps_Crossselling extends Module implements WidgetInterface
         ];
     }
 
+    /**
+     * We have no variation for customer id nor country.
+     * We do not cache if there are more than one product
+     * @param array $productIds
+     * @return string|null
+     */
+
     public function getCacheIdKey($productIds)
     {
-        return parent::getCacheId('ps_crossselling|' . implode('|', $productIds));
+        if (count($productIds) > 1) {
+            return null;
+        } else {
+            $cache_array = [];
+            $cache_array[] = 'ps_crossselling|' . reset($productIds);
+            if (Configuration::get('PS_SSL_ENABLED')) {
+                $cache_array[] = (int) Tools::usingSecureMode();
+            }
+            if (Shop::isFeatureActive()) {
+                $cache_array[] = (int) $this->context->shop->id;
+            }
+            if (Language::isMultiLanguageActivated()) {
+                $cache_array[] = (int) $this->context->language->id;
+            }
+            if (Currency::isMultiCurrencyActivated()) {
+                $cache_array[] = (int) $this->context->currency->id;
+            }
+
+            return implode('|', $cache_array);
+        }
     }
 
     private function getProductIds($hookName, array $configuration)
@@ -229,10 +269,12 @@ class Ps_Crossselling extends Module implements WidgetInterface
         $productIds = $this->getProductIds($hookName, $configuration);
 
         if (empty($productIds)) {
-            return;
+            return false;
         }
 
-        if (!$this->isCached($this->templateFile, $this->getCacheIdKey($productIds))) {
+        $key = $this->getCacheIdKey($productIds);
+
+        if (null === $key || !$this->isCached($this->templateFile, $key)) {
             $variables = $this->getWidgetVariables($hookName, $configuration);
 
             if (empty($variables)) {
@@ -242,7 +284,7 @@ class Ps_Crossselling extends Module implements WidgetInterface
             $this->smarty->assign($variables);
         }
 
-        return $this->fetch($this->templateFile, $this->getCacheIdKey($productIds));
+        return $this->fetch($this->templateFile, $key);
     }
 
     protected function getOrderProducts(array $productIds = [])
