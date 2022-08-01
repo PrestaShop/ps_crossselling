@@ -299,6 +299,7 @@ class Ps_Crossselling extends Module implements WidgetInterface
                 )) . $sql_groups_join . '
                 WHERE od.id_order IN (' . $list . ')
                 AND od.product_id NOT IN (' . $list_product_ids . ')
+                AND product_shop.visibility IN (\'both\',\'catalog\')
                 AND product_shop.active = 1
                 ' . $sql_groups_where . '
                 ORDER BY RAND()
