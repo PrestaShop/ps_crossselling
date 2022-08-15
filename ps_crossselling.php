@@ -224,6 +224,7 @@ class Ps_Crossselling extends Module implements WidgetInterface
         if ($nbr_orders < $nbr_products) {
             $nbr_orders = 3 * $nbr_products;
         }
+
         return [
             'CROSSSELLING_NBR' => $nbr_products,
             'CROSSSELLING_DISPLAY_PRICE' => Tools::getValue('CROSSSELLING_DISPLAY_PRICE', Configuration::get('CROSSSELLING_DISPLAY_PRICE')),
