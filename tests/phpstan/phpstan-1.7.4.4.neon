@@ -1,0 +1,7 @@
+includes:
+	- %currentWorkingDirectory%/tests/phpstan/phpstan.neon
+
+parameters:
+  ignoreErrors:
+    - '#Call to method present\(\) on an unknown class PrestaShop\\PrestaShop\\Adapter\\Presenter\\Product\\ProductListingPresenter.#'
+    - '#Instantiated class PrestaShop\\PrestaShop\\Adapter\\Presenter\\Product\\ProductListingPresenter not found.#'
