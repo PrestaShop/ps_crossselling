@@ -39,6 +39,8 @@ class Ps_Crossselling extends Module implements WidgetInterface
     const LIMIT_FACTOR = 50;
     private $templateFile;
 
+    private $cache_life;
+
     public function __construct()
     {
         $this->name = 'ps_crossselling';
@@ -59,6 +61,7 @@ class Ps_Crossselling extends Module implements WidgetInterface
         $this->description = $this->trans('Offer your customers the possibility to buy matching items when on a product page.', [], 'Modules.Crossselling.Admin');
 
         $this->templateFile = 'module:ps_crossselling/views/templates/hook/ps_crossselling.tpl';
+        $this->cache_life = (int) Configuration::get('CROSSSELLING_CACHE_LIFE');
     }
 
     public function install()
@@ -110,7 +113,9 @@ class Ps_Crossselling extends Module implements WidgetInterface
 
     protected function clearCache()
     {
-        Configuration::updateValue('CROSSSELLING_CACHE_TS', time());
+        if ($this->cache_life >= 60) {
+            Configuration::updateValue('CROSSSELLING_CACHE_TS', time());
+        }
         parent::_clearCache($this->templateFile);
     }
 
@@ -257,8 +262,7 @@ class Ps_Crossselling extends Module implements WidgetInterface
             return false;
         }
 
-        $cache_life = (int) Configuration::get('CROSSSELLING_CACHE_LIFE');
-        if ($cache_life < 60 || time() > (int) Configuration::get('CROSSSELLING_CACHE_TS') + $cache_life) {
+        if ($this->cache_life < 60 || time() > (int) Configuration::get('CROSSSELLING_CACHE_TS') + $this->cache_life) {
             $this->clearCache();
         }
 
