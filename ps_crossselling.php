@@ -318,15 +318,20 @@ class Ps_Crossselling extends Module implements WidgetInterface
                 );
             }
 
+            // Now, we can present the products for the template.
             $productsForTemplate = [];
 
+            // Assemble & present in bulk or separately, depending on core version
             $presentationSettings->showPrices = $showPrice;
-
+            $assembleInBulk = method_exists($assembler, 'assembleProducts');
+            if ($assembleInBulk) {
+                $order_products = $assembler->assembleProducts($order_products);
+            }
             if (is_array($order_products)) {
-                foreach ($order_products as $productId) {
+                foreach ($order_products as $rawProduct) {
                     $productsForTemplate[] = $presenter->present(
                         $presentationSettings,
-                        $assembler->assembleProduct(['id_product' => $productId['product_id']]),
+                        ($assembleInBulk ? $rawProduct : $assembler->assembleProduct($rawProduct)),
                         $this->context->language
                     );
                 }
