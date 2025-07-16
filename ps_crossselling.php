@@ -333,8 +333,8 @@ class Ps_Crossselling extends Module implements WidgetInterface
             if ($assembleInBulk) {
                 $rawProducts = $assembler->assembleProducts($rawProducts);
             }
-            if (is_array(rawProducts)) {
-                foreach (rawProducts as $rawProduct) {
+            if (is_array($rawProducts)) {
+                foreach ($rawProducts as $rawProduct) {
                     $productsForTemplate[] = $presenter->present(
                         $presentationSettings,
                         ($assembleInBulk ? $rawProduct : $assembler->assembleProduct($rawProduct)),
