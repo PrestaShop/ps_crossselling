@@ -43,7 +43,7 @@ class Ps_Crossselling extends Module implements WidgetInterface
         $this->name = 'ps_crossselling';
         $this->tab = 'pricing_promotion';
         $this->author = 'PrestaShop';
-        $this->version = '2.0.2';
+        $this->version = '2.0.3';
         $this->need_instance = 0;
 
         $this->ps_versions_compliancy = [
@@ -318,15 +318,26 @@ class Ps_Crossselling extends Module implements WidgetInterface
                 );
             }
 
+            // Now, we can present the products for the template.
             $productsForTemplate = [];
 
-            $presentationSettings->showPrices = $showPrice;
+            // Prepare a standardized array with products
+            $rawProducts = [];
+            foreach ($order_products as $orderProduct) {
+                $rawProducts[] = ['id_product' => $orderProduct['product_id']];
+            }
 
-            if (is_array($order_products)) {
-                foreach ($order_products as $productId) {
+            // Assemble & present in bulk or separately, depending on core version
+            $presentationSettings->showPrices = $showPrice;
+            $assembleInBulk = method_exists($assembler, 'assembleProducts');
+            if ($assembleInBulk) {
+                $rawProducts = $assembler->assembleProducts($rawProducts);
+            }
+            if (is_array($rawProducts)) {
+                foreach ($rawProducts as $rawProduct) {
                     $productsForTemplate[] = $presenter->present(
                         $presentationSettings,
-                        $assembler->assembleProduct(['id_product' => $productId['product_id']]),
+                        ($assembleInBulk ? $rawProduct : $assembler->assembleProduct($rawProduct)),
                         $this->context->language
                     );
                 }
