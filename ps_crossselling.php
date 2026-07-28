@@ -320,7 +320,7 @@ class Ps_Crossselling extends Module implements WidgetInterface
                 foreach ($rawProducts as $rawProduct) {
                     $productsForTemplate[] = $presenter->present(
                         $presentationSettings,
-                        ($assembleInBulk ? $rawProduct : $assembler->assembleProduct($rawProduct)),
+                        $assembleInBulk ? $rawProduct : $assembler->assembleProduct($rawProduct),
                         $this->context->language
                     );
                 }
