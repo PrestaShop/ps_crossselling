@@ -47,7 +47,7 @@ class Ps_Crossselling extends Module implements WidgetInterface
         $this->need_instance = 0;
 
         $this->ps_versions_compliancy = [
-            'min' => '1.7.2.0',
+            'min' => '8.2.0',
             'max' => _PS_VERSION_,
         ];
 
