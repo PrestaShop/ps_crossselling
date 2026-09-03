@@ -35,6 +35,16 @@ if (!defined('_PS_VERSION_')) {
 
 class Ps_Crossselling extends Module implements WidgetInterface
 {
+    /**
+     * Hooks that describe the cart rather than a single product. They receive 'cart' in their
+     * configuration and never 'product'.
+     */
+    private const CART_HOOKS = [
+        'displayShoppingCart',
+        'displayShoppingCartFooter',
+        'displayCrossSellingShoppingCart',
+    ];
+
     const LIMIT_FACTOR = 50;
     private $templateFile;
 
@@ -191,12 +201,17 @@ class Ps_Crossselling extends Module implements WidgetInterface
 
     private function getProductIds($hookName, array $configuration)
     {
-        if ('displayShoppingCart' === $hookName || 'displayShoppingCartFooter' === $hookName) {
+        // Every cart hook is given the cart, never a product. displayCrossSellingShoppingCart is the
+        // one both bundled themes call from cart.tpl, so a module transplanted onto it used to fall
+        // into the product branch and dereference a 'product' key that is not there.
+        if (in_array($hookName, self::CART_HOOKS, true)) {
             $productIds = array_map(function ($elem) {
                 return $elem['id_product'];
             }, $configuration['cart']->getProducts());
-        } else {
+        } elseif (isset($configuration['product']['id_product'])) {
             $productIds = [$configuration['product']['id_product']];
+        } else {
+            $productIds = [];
         }
 
         return array_unique($productIds);
